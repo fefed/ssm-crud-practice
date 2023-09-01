@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--
+      1. 开启 组件扫描,扫描业务层和数据访问层组件
+      2. 引入 JDBC配置文件
+      3. 配置 数据源/连接池
+      4. 配置 SqlSessionFactoryBean,配置MyBatis
+      5. 开启 Mapper接口扫描
+      6. 配置 事务管理器
+    -->
+
+    <!--1、配置扫描包，不扫描controller-->
+    <!-- 开启注解扫描，扫描除Controller以为的其他组件 -->
+    <context:component-scan base-package="com.zdy.ssm">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+
+    <!--2、数据源的配置-->
+    <!-- 引入jdbc.properties -->
+    <context:property-placeholder location="classpath:jdbc.properties"/>
+    <!-- 配置Druid数据源 -->
+    <bean id="druidDataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+
+
+    <!--3、与 MyBatis 的整合配置-->
+    <!-- 配置用于创建SqlSessionFactory的工厂bean -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 设置MyBatis配置文件的路径（可以不设置） -->
+        <property name="configLocation" value="classpath:mybatis-config.xml">
+        </property>
+        <!-- 设置数据源 -->
+        <property name="dataSource" ref="druidDataSource"/>
+        <!-- 设置类型别名所对应的包 -->
+        <property name="typeAliasesPackage" value="com.zdy.ssm.bean">
+        </property>
+        <!--设置映射文件的路径，若映射文件所在路径和mapper接口所在路径一致，则不需要设置-->
+        <!-- <property name="mapperLocations" value="classpath:mapper/*.xml"></property> -->
+    </bean>
+    <!-- 配置mapper接口的扫描器 -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--扫描所有的 DAO 接口的实现，加入到 IOC 容器中-->
+        <property name="basePackage" value="com.zdy.ssm.mapper"/>
+    </bean>
+    <!--配置一个可以执行批量操作的 sqlSession-->
+    <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory"/>
+        <constructor-arg name="executorType" value="BATCH"/>
+    </bean>
+
+
+    <!--4、事务控制-->  <!--本项目中没用到-->
+    <!--配置事务管理器-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="druidDataSource"/>
+    </bean>
+    <!--开启事务的注解驱动 -->
+    <!--将使用注解@Transactional标识的方法或类中所有的方法进行事务管理-->
+    <!-- transaction-manager属性的默认值是transactionManager，id设置为默认值，可以省略该属性 -->
+    <tx:annotation-driven/>
+</beans>
