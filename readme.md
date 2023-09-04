@@ -23,3 +23,14 @@
    方法1. 报错属性的快速解决方案中打开Language Injection Setting, 删除XML Tag/Local Name中的sql，关闭对sql节点的语法检查
    方法2. 添加诸如<sql id="xx"> <if test="true"> 属性... </if> </sql>的语法，使之符合SQL标签语法
    ```
+6. 前端使用Axios发送post请求，后端使用@RequestParam接收不到参数
+   ```
+   原因：Axios在发送post请求时会自动帮我们把参数转化为json并放入请求体，传输类型为application/json；
+   而@RequestParam只能从字符串中解析参数
+   方法一：后端使用@RequestBody接收
+   方法二：前端axios请求配置中data改为params(更简单)
+   ```
+7. 响应Ajax请求时，返回对象，利用@ResponseBody注解和Jackson依赖自动转化为json对象，但是缺少属性
+   ```
+   该实现机制需要getter支持，所以必须实现属性的get方法
+   ```

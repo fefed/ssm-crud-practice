@@ -105,7 +105,7 @@
   <sql id="WithDept_Column_list">
     <if test="true">emp_id, emp_name, gender, email, d_id, dept_id, dept_name</if>
   </sql>
-  <!--  List<Dept> selectByExampleWithDept(DeptExample example);-->
+  <!--  List<Emp> selectByExampleWithDept(EmpExample example);-->
   <select id="selectByExampleWithDept" resultMap="WithDeptResultMap" parameterType="com.zdy.ssm.bean.EmpExample">
     select
     <if test="distinct" >
@@ -120,7 +120,7 @@
       order by ${orderByClause}
     </if>
   </select>
-  <!--  Dept selectByPrimaryKeyWithDept(Integer deptId);-->
+  <!--  Emp selectByPrimaryKeyWithDept(Integer EmpId);-->
   <select id="selectByPrimaryKeyWithDept" resultMap="WithDeptResultMap" parameterType="java.lang.Integer" >
     select
     <include refid="WithDept_Column_list" />

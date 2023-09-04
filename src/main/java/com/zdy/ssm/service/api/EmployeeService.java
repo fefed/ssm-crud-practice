@@ -10,4 +10,6 @@ import java.util.List;
  */
 public interface EmployeeService {
     List<Emp> getAllEmployees();
+
+    Integer saveEmployee(Emp emp);
 }
