@@ -134,6 +134,12 @@
       <artifactId>thymeleaf-spring5</artifactId>
       <version>3.0.12.RELEASE</version>
     </dependency>
+    <!-- JSR303数据校验 -->
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-validator</artifactId>
+      <version>5.4.1.Final</version>
+    </dependency>
   </dependencies>
 
   <!-- 控制Maven在构建过程中相关配置 -->

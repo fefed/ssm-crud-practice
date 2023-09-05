@@ -11,5 +11,11 @@ import java.util.List;
 public interface EmployeeService {
     List<Emp> getAllEmployees();
 
-    Integer saveEmployee(Emp emp);
+    void saveEmployee(Emp emp);
+
+    Boolean checkEmpName(String empName);
+
+    Emp getEmployee(Integer empId);
+
+    void updateEmployee(Emp emp);
 }

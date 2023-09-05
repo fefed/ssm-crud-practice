@@ -123,7 +123,6 @@
         </div>
     </div>
     <!--添加员工模态框-->
-    <!-- Modal -->
     <div class="modal fade" id="addEmpModal" tabindex="-1" role="dialog" aria-labelledby="addModalLabel">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -138,7 +137,7 @@
                             <label for="inputEmpName" class="col-sm-2 control-label">姓名</label>
                             <div class="col-sm-10">
                                 <input type="text" v-model="emp.empName" class="form-control"
-                                       id="inputEmpName" @change="checkEmpName()" placeholder="请输入名字">
+                                       id="inputEmpName" @change="checkName()" placeholder="请输入名字">
                                 <span class="help-block"></span>
                             </div>
                         </div>
@@ -184,7 +183,6 @@
         </div>
     </div>
     <!--编辑员工模态框-->
-    <!-- Modal -->
     <div class="modal fade" id="editEmpModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -208,11 +206,11 @@
                             <div class="col-sm-10">
                                 <label class="radio-inline">
                                     <input type="radio" v-model="editEmp.gender" name="gender" id="inputGenderEdit1"
-                                           value="男"> 男
+                                           value="M"> 男
                                 </label>
                                 <label class="radio-inline">
                                     <input type="radio" v-model="editEmp.gender" name="gender" id="inputGenderEdit2"
-                                           value="女"> 女
+                                           value="W"> 女
                                 </label>
                             </div>
                         </div>
@@ -227,14 +225,14 @@
                         <div class="form-group">
                             <label class="col-sm-2 control-label">部门</label>
                             <div class="col-sm-4">
-                                <select class="form-control" v-model="editEmp.deptId">
+                                <select class="form-control" v-model="editEmp.dId">
                                     <!-- 将获取到的部门 信息进行双向绑定 -->
                                     <option v-for="dept in deptInfo" :value="dept.deptId"
-                                            v-if="editDept.deptName != dept.deptName">
+                                            v-if="editEmp.dId != dept.deptId">
                                         {{dept.deptName}}
                                     </option>
                                     <!-- 将当前正在编辑的用户的部门名设置为默认显示 -->
-                                    <option :value="dept.deptId" v-else="editDept.deptName == dept.deptName"
+                                    <option :value="dept.deptId" v-else="editEmp.dId == dept.deptId"
                                             selected="selected">
                                         {{dept.deptName}}
                                     </option>
@@ -245,7 +243,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
-                    <button type="button" class="btn btn-primary" @click.prevent="updateEmp()">更新</button>
+                    <button type="button" class="btn btn-primary" @click.prevent="updateEmp(editEmp.dId)">更新</button>
                 </div>
             </div>
         </div>
@@ -267,12 +265,11 @@
                 emp: {
                     empId: null,
                     empName: null,
-                    gender: null,
+                    gender: "M",
                     email: null,
                     dId: null
                 },
-                editEmp: {},//存放正在编辑的用户信息
-                editDept: {},//存放正在编辑的部门信息
+                editEmp: {},// 存放正在编辑的用户信息
             },
             methods: {
                 //获得分页信息
@@ -293,8 +290,22 @@
                         totalNum = vue.pageInfo.total
                     })
                 },
+                // 添加员工
                 addEmp: function () {
+                    // 清空表单信息
+                    // 使用vue双向绑定，无法使用以下语句清空
+                    // $('#addEmpModal form')[0].reset()
+                    this.emp.empId = null
+                    this.emp.empName = null
+                    this.emp.email = null
+                    this.emp.gender = "M"
+                    this.emp.dId = null
+                    //清空样式
+                    $('#addEmpModal form').find("*").removeClass("has-error has-success");
+                    $('#addEmpModal form').find(".help-block").text("");
+                    // 获取部门信息
                     this.getDepartments()
+                    // 弹出模态框
                     $('#addEmpModal').modal({
                         backdrop: "static" // 点击背景不关闭模态框
                     })
@@ -306,7 +317,71 @@
                         vue.deptInfo = res.data.data.deptInfo
                     })
                 },
+                // 显示校验结果的提示信息
+                show_validate_msg: function (ele, status, msg) {
+                    //清除当前元素的校验状态
+                    $(ele).parent().removeClass("has-success has-error");
+                    $(ele).next("span").text("");
+                    if ("success" === status) {
+                        $(ele).parent().addClass("has-success");
+                        $(ele).next("span").text(msg);
+                    } else if ("error" === status) {
+                        $(ele).parent().addClass("has-error");
+                        $(ele).next("span").text(msg);
+                    }
+                },
+                // 检查员工姓名是否重复
+                checkName: function () {
+                    axios({
+                        url: "[[@{/employee/checkName}]]",
+                        params: {
+                            empName: vue.emp.empName
+                        }
+                    }).then(function (res) {
+                        if (res.data.code === 100) {
+                            // 注意此处不可使用this，此处this指代axios而非vue
+                            vue.show_validate_msg("#inputEmpName", "success", "用户名可用");
+                            $("#emp_save_btn").attr("ajax-va", "success");
+                        } else {
+                            vue.show_validate_msg("#inputEmpName", "error", res.data.data.errorMsg);
+                            $("#emp_save_btn").attr("ajax-va", "error");
+                        }
+                    })
+                },
+                // 校验表单数据是否合法（使用正则表达式）
+                validate_add_form: function () {
+                    //1、校验姓名
+                    let empName = vue.emp.empName
+                    let regName = /(^[a-zA-Z0-9_-]{6,16}$)|(^[\u2E80-\u9FFF]{2,5})/;
+                    if (!regName.test(empName)) {
+                        this.show_validate_msg("#inputEmpName", "error", "用户名必须是2-5位中文或者6-16位英文和数字的组合");
+                        return false;
+                    } else {
+                        this.show_validate_msg("#inputEmpName", "success", "");
+                    }
+
+                    //2、校验邮箱
+                    let email = vue.emp.email
+                    let regEmail = /^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/;
+                    if (!regEmail.test(email)) {
+                        this.show_validate_msg("#inputEmail", "error", "邮箱格式不正确");
+                        return false;
+                    } else {
+                        this.show_validate_msg("#inputEmail", "success", "");
+                    }
+                    return true;
+                },
+                // 保存添加的员工
                 saveEmp: function () {
+                    // 1. 校验表单数据
+                    if (!this.validate_add_form()) {
+                        return false
+                    }
+                    //2、校验用户名是否可用
+                    if ($("#emp_save_btn").attr("ajax-va") === "error") {
+                        return false;
+                    }
+                    // 3. 发送请求保存数据
                     axios({
                         method: "POST",
                         url: "[[@{/employee}]]",
@@ -314,16 +389,58 @@
                     }).then(function (res) {
                         // console.log(res)
                         if (res.data.code === 100) {
-                            alert(res.data.msg)
+                            // alert(res.data.msg)
                             // 关闭模态框
                             $("#addEmpModal").modal('hide')
                             // 通过超过范围的页码跳转到尾页
                             vue.getPageInfo(totalNum + 1)
                         } else {
-                            alert("保存失败！请重试！")
+                            // 显示失败信息
+                            if (undefined !== res.data.data.errorFields.email) {
+                                //显示邮箱错误信息
+                                vue.show_validate_msg("#inputEmail", "error", res.data.data.errorFields.email);
+                            }
+                            if (undefined !== res.data.data.errorFields.empName) {
+                                //显示员工名字的错误信息
+                                vue.show_validate_msg("#empName_add_input", "error", res.data.data.errorFields.empName);
+                            }
                         }
                     })
-
+                },
+                editModal: function (empId) {
+                    // 查询员工信息
+                    axios.get("[[@{/employee/}]]" + empId).then(function (res) {
+                        vue.editEmp = res.data.data.emp
+                    })
+                    // 获取部门信息
+                    this.getDepartments()
+                    // 打开编辑模态框
+                    $('#editEmpModal').modal({
+                        backdrop: "static",
+                    })
+                },
+                updateEmp: function (empId) {
+                    // 1、校验邮箱是否合法
+                    let email = this.editEmp.email
+                    let regEmail = /^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/;
+                    if (!regEmail.test(email)) {
+                        this.show_validate_msg("#inputEmailEdit", "error", "邮箱格式不正确");
+                        return false;
+                    } else {
+                        this.show_validate_msg("#inputEmailEdit", "success", "");
+                    }
+                    // 2. 发送更新请求
+                    axios({
+                        method: "PUT",
+                        url: "[[@{/employee/}]]" + empId,
+                        params: vue.editEmp
+                    }).then(function (res) {
+                        // alert(res.data.msg);
+                        // 关闭模态框
+                        $("#editEmpModal").modal('hide');
+                        // 跳转到记录所在页面
+                        vue.getPageInfo(vue.pageInfo.pageNum);
+                    })
                 }
             },
 
