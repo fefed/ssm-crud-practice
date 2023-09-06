@@ -18,4 +18,8 @@ public interface EmployeeService {
     Emp getEmployee(Integer empId);
 
     void updateEmployee(Emp emp);
+
+    void deleteEmployeeById(Integer empId);
+
+    void deleteEmployeeBatch(List<Integer> empIdList);
 }

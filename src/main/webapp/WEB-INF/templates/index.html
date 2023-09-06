@@ -42,7 +42,7 @@
                     <th>操作</th>
                 </tr>
                 <tr v-for="emp in pageInfo.list">
-                    <td><input type="checkbox" class="check_item" @click="checkItem(emp.empId)"></td>
+                    <td><input type="checkbox" class="check_item" @click="checkItem()"></td>
                     <td>{{emp.empId}}</td>
                     <td>{{emp.empName}}</td>
                     <td v-if="emp.gender=='M'">男</td>
@@ -54,7 +54,7 @@
                         <button type="button" class="btn btn-primary btn-sm" @click="editModal(emp.empId)">
                             <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>修改
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm" @click="deleteEmp(emp.empName)">
+                        <button type="button" class="btn btn-danger btn-sm" @click="deleteEmp(emp.empId, emp.empName)">
                             <span class="glyphicon glyphicon-trash" aria-hidden="true"></span>删除
                         </button>
                     </td>
@@ -65,7 +65,7 @@
     <!--分页栏-->
     <div class="row">
         <div class="col-md-6">
-            当前第{{pageInfo.pageNum}}页,共有{{pageInfo.pages}}页,总计{{pageInfo.total}}条记录
+            当前为第{{pageInfo.pageNum}}页,共有{{pageInfo.pages}}页,总计{{pageInfo.total}}条记录
         </div>
         <div class="col-md-6">
             <nav aria-label="Page navigation">
@@ -248,7 +248,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 <!--VUE编写操作-->
@@ -270,16 +269,15 @@
                     dId: null
                 },
                 editEmp: {},// 存放正在编辑的用户信息
+                deleteIdStr: ""
             },
             methods: {
-                //获得分页信息
+                // 获得分页信息
                 getPageInfo: function (pageNo) {
                     axios({
                         method: "GET",
                         url: "[[@{/employee/page/}]]",
-                        // 若采用post请求方式，此处应该用params而非data，
-                        // 否则后端无法使用@RequestParam接收
-                        // 若使用data，后端应该用@RequestBody获取
+                        // 若采用post请求方式+data，后端应该用@RequestBody获取
                         params: {
                             pageNo: pageNo
                         }
@@ -310,6 +308,7 @@
                         backdrop: "static" // 点击背景不关闭模态框
                     })
                 },
+                // 获取部门信息
                 getDepartments: function () {
                     axios.get("[[@{/department/all/}]]").then(function (res) {
                         // 控制台输出测试
@@ -385,7 +384,7 @@
                     axios({
                         method: "POST",
                         url: "[[@{/employee}]]",
-                        params: this.emp
+                        data: this.emp
                     }).then(function (res) {
                         // console.log(res)
                         if (res.data.code === 100) {
@@ -407,6 +406,7 @@
                         }
                     })
                 },
+                // 显示编辑员工的信息
                 editModal: function (empId) {
                     // 查询员工信息
                     axios.get("[[@{/employee/}]]" + empId).then(function (res) {
@@ -419,6 +419,7 @@
                         backdrop: "static",
                     })
                 },
+                // 更新员工信息
                 updateEmp: function (empId) {
                     // 1、校验邮箱是否合法
                     let email = this.editEmp.email
@@ -433,14 +434,68 @@
                     axios({
                         method: "PUT",
                         url: "[[@{/employee/}]]" + empId,
-                        params: vue.editEmp
-                    }).then(function (res) {
+                        data: vue.editEmp
+                    }).then(function () {
                         // alert(res.data.msg);
                         // 关闭模态框
                         $("#editEmpModal").modal('hide');
                         // 跳转到记录所在页面
                         vue.getPageInfo(vue.pageInfo.pageNum);
                     })
+                },
+                // 删除员工
+                deleteEmp: function (empId, empName) {
+                    if (confirm("确认删除【 " + empName + " 】吗？")) {
+                        axios({
+                            method: "DELETE",
+                            url: "[[@{/employee/}]]" + empId
+                        }).then(function (res) {
+                            alert(res.data.msg)
+                            vue.getPageInfo(vue.pageInfo.pageNum)
+                        })
+                    }
+                },
+                // 全选
+                checkAll: function () {
+                    // dom 原生的属性用 prop 获取，自定义的属性用 attr 获取
+                    // 查看当前全选框是否为选中状态（选中为true，否则为false）
+                    let flag = $("#check_all").prop("checked");
+                    // 如果全选框为选中/未选中状态，那么其他单选框都要选中/未选中
+                    $(".check_item").prop("checked", flag);
+                },
+                // 单选(需联动全选)
+                checkItem: function () {
+                    // 若当前页员工都被选中，全选框也应选中
+                    let flag = $(".check_item:checked").length === $(".check_item").length;
+                    $("#check_all").prop("checked", flag);
+                },
+                // 批量删除选中员工
+                deleteEmpBatch: function () {
+                    // 无选中内容，提示
+                    if ($(".check_item:checked").length === 0) {
+                        alert("未选中任何内容！");
+                        return false;
+                    }
+                    // 组装欲删除员工id字符串
+                    let del_id_str = "";
+                    $.each($(".check_item:checked"), function () {
+                        del_id_str += $(this).parents("tr").find("td:eq(1)").text() + "-";
+                    });
+                    // 去除多余的"-"
+                    del_id_str = del_id_str.substring(0, del_id_str.length - 1);
+                    // 确认删除
+                    if (confirm("是否确认删除所选员工信息？")) {
+                        axios.delete("[[@{/employee/}]]" + del_id_str)
+                            .then(function (res) {
+                                // 提示处理结果
+                                alert(res.data.msg)
+                                // 选择框置空
+                                $("#check_all").prop("checked", false);
+                                $(".check_item").prop("checked", false);
+                                // 回到当前页
+                                vue.getPageInfo(vue.pageInfo.pageNum)
+                            })
+                    }
                 }
             },
 
@@ -451,7 +506,6 @@
             }
         });
     }
-
 </script>
 </body>
 </html>
